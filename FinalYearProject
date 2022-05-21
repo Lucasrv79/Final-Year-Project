@@ -1,0 +1,852 @@
+title: "Sentiment of Tweets"
+author: "Lucas Villalba"
+date: "4/7/2022"
+output: html_document
+
+
+
+## 
+
+
+knitr::opts_chunk$set(echo = TRUE, message = FALSE)
+# load twitter library - the rtweet library is recommended now over twitteR
+library(rtweet)
+# plotting and pipes - tidyverse!
+library(ggplot2)
+library(dplyr)
+# text mining library
+library(tidytext)
+library(NLP)
+library(tm)
+
+
+## Twitter API
+
+ documentation ->  https://www.rdocumentation.org/packages/rtweet/versions/0.7.0/topics/search_tweets
+
+
+
+#Access Token xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+# Access Token Secret xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+# whatever name you assigned to your created app
+appname <- "textcloudtest1"
+
+## api key (example below is not a real key)
+key <- "xxxxxxxxxxxxxxxxxxxxxx"
+
+## api secret (example below is not a real key)
+secret <- "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+# access_token
+access_token <- "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+#access token secret
+access_secret <- "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+
+# create token named "twitter_token"
+twitter_token <- create_token(
+  app = appname,
+  consumer_key = key,
+  consumer_secret = secret,
+  access_token = access_token,
+  access_secret = access_secret)
+
+
+## Data extraction
+
+# extract Bank of Ireland tweets
+boi <- get_timelines("@bankofireland", 
+                        n = 10000, 
+                        language = "en",
+                        since = "2014-01-01", 
+                        until = "2022-04-06",
+                        token = twitter_token)
+# write a CSV
+write_as_csv(boi, "C:/Users/Administrador/Documents/R/Final year Project/Final Year Project/data/boi.csv", prepend_ids = TRUE, fileEncoding = "UTF-8")
+
+# Extract @Ryanair tweets
+ryan <- get_timelines("@Ryanair", 
+                        n = 10000, 
+                        language = "en",
+                        since = "2014-01-01", 
+                        until = "2022-04-06",
+                        token = twitter_token)
+# write a CSV
+write_as_csv(ryan, "C:/Users/Administrador/Documents/R/Final year Project/Final Year Project/data/ryan.csv", prepend_ids = TRUE, fileEncoding = "UTF-8")
+
+# Extract @AgileTech_ie tweets
+agi <- get_timelines("@Agilent", 
+                        n = 10000, 
+                        language = "en",
+                        since = "2014-01-01", 
+                        until = "2022-04-06",
+                        token = twitter_token)
+# write a CSV
+write_as_csv(agi, "C:/Users/Administrador/Documents/R/Final year Project/Final Year Project/data/agilent.csv", prepend_ids = TRUE, fileEncoding = "UTF-8")
+
+# Extract @Skillsoft tweets
+skil <- get_timelines("@Skillsoft", 
+                        n = 10000, 
+                        language = "en",
+                        since = "2014-01-01", 
+                        until = "2022-04-06",
+                        token = twitter_token)
+# write a CSV
+write_as_csv(skil, "C:/Users/Administrador/Documents/R/Final year Project/Final Year Project/data/skill.csv", prepend_ids = TRUE, fileEncoding = "UTF-8")
+
+# Extract @kerryfoodgroup tweets
+kerry <- get_timelines("@kerryfoodgroup", 
+                        n = 10000, 
+                        language = "en",
+                        since = "2014-01-01", 
+                        until = "2022-04-06",
+                        token = twitter_token)
+# write a CSV
+write_as_csv(kerry, "C:/Users/Administrador/Documents/R/Final year Project/Final Year Project/data/kerry.csv", prepend_ids = TRUE, fileEncoding = "UTF-8")
+
+# Extract @business Bloomberg tweets
+bloomberg <- get_timelines("@business", 
+                        n = 10000, 
+                        language = "en",
+                        since = "2014-01-01", 
+                        until = "2022-04-06",
+                        token = twitter_token)
+# write a CSV
+write_as_csv(kerry, "C:/Users/Administrador/Documents/R/Final year Project/Final Year Project/data/bloomberg.csv", prepend_ids = TRUE, fileEncoding = "UTF-8")
+
+
+## Tweets cleaning 
+
+# Remove retweets
+boi_tweets_organic <- boi[boi$is_retweet==FALSE, ] 
+ryan_tweets_organic <- ryan[ryan$is_retweet==FALSE, ] 
+agi_tweets_organic <- agi[agi$is_retweet==FALSE, ] 
+skil_tweets_organic <- skil[skil$is_retweet==FALSE, ] 
+
+# Remove replies
+boi_tweets_organic <- subset(boi_tweets_organic, is.na(boi_tweets_organic$reply_to_status_id)) 
+ryan_tweets_organic <- subset(ryan_tweets_organic, is.na(ryan_tweets_organic$reply_to_status_id)) 
+agi_tweets_organic <- subset(agi_tweets_organic, is.na(agi_tweets_organic$reply_to_status_id)) 
+skil_tweets_organic <- subset(skil_tweets_organic, is.na(skil_tweets_organic$reply_to_status_id)) 
+
+# Engagement by the variables $favorite_count and $retweet_count
+# BOI
+boi_tweets_organic <- boi_tweets_organic %>% arrange(-favorite_count)
+boi_tweets_organic[1,5]
+boi_tweets_organic <- boi_tweets_organic %>% arrange(-retweet_count)
+boi_tweets_organic[1,5]
+# Ryanair
+ryan_tweets_organic <- ryan_tweets_organic %>% arrange(-favorite_count)
+ryan_tweets_organic[1,5]
+ryan_tweets_organic <- ryan_tweets_organic %>% arrange(-retweet_count)
+ryan_tweets_organic[1,5]
+# Agilent
+agi_tweets_organic <- agi_tweets_organic %>% arrange(-favorite_count)
+agi_tweets_organic[1,5]
+agi_tweets_organic <- agi_tweets_organic %>% arrange(-retweet_count)
+agi_tweets_organic[1,5]
+# SkillSoft
+skil_tweets_organic <- skil_tweets_organic %>% arrange(-favorite_count)
+skil_tweets_organic[1,5]
+skil_tweets_organic <- skil_tweets_organic %>% arrange(-retweet_count)
+skil_tweets_organic[1,5]
+
+
+# Keeping only the retweets for each
+boi_retweets <- boi[boi$is_retweet==TRUE,]
+ryan_retweets <- ryan[ryan$is_retweet==TRUE,]
+agi_retweets <- agi[agi$is_retweet==TRUE,]
+skil_retweets <- skil[skil$is_retweet==TRUE,]
+
+# Keeping only the replies for each
+boi_replies <- subset(boi, !is.na(boi$reply_to_status_id))
+ryan_replies <- subset(ryan, !is.na(ryan$reply_to_status_id))
+agi_replies <- subset(agi, !is.na(agi$reply_to_status_id))
+skil_replies <- subset(skil, !is.na(skil$reply_to_status_id))
+
+# Creating a data frame for each
+boi_data <- data.frame(
+  category=c("Organic", "Retweets", "Replies"),
+  count=c(2484, 580, 182)
+)
+ryan_data <- data.frame(
+  category=c("Organic", "Retweets", "Replies"),
+  count=c(740, 100, 2292)
+)
+agi_data <- data.frame(
+  category=c("Organic", "Retweets", "Replies"),
+  count=c(2786, 376, 85)
+)
+skil_data <- data.frame(
+  category = c("Organic","Retweets","Replies"),
+  count= c (1719, 563, 962)
+)
+
+# Adding columns for each df
+boi_data$fraction = boi_data$count / sum(boi_data$count)
+boi_data$percentage = boi_data$count / sum(boi_data$count) * 100
+boi_data$ymax = cumsum(boi_data$fraction)
+boi_data$ymin = c(0, head(boi_data$ymax, n=-1))
+
+ryan_data$fraction = ryan_data$count / sum(ryan_data$count)
+ryan_data$percentage = ryan_data$count / sum(ryan_data$count) * 100
+ryan_data$ymax = cumsum(ryan_data$fraction)
+ryan_data$ymin = c(0, head(ryan_data$ymax, n=-1))
+
+agi_data$fraction = agi_data$count / sum(agi_data$count)
+agi_data$percentage = agi_data$count / sum(agi_data$count) * 100
+agi_data$ymax = cumsum(agi_data$fraction)
+agi_data$ymin = c(0, head(agi_data$ymax, n=-1))
+
+skil_data$fraction = skil_data$count / sum(skil_data$count)
+skil_data$percentage = skil_data$count / sum(skil_data$count) * 100
+skil_data$ymax = cumsum(skil_data$fraction)
+skil_data$ymin = c(0, head(skil_data$ymax, n=-1))
+# Rounding the data to two decimal points for each df
+library("dendroTools")
+boi_data <- round_df(boi_data, 2)
+ryan_data <- round_df(ryan_data, 2)
+agi_data <- round_df(agi_data, 2)
+skil_data <- round_df(skil_data, 2)
+
+# Specify what the legend should say for each
+Type_of_Tweet_BOI <- paste(boi_data$category, boi_data$percentage, "%")
+boi_leg<-ggplot(boi_data, aes(ymax=ymax, ymin=ymin, xmax=4, xmin=3, fill=Type_of_Tweet_BOI)) +
+  geom_rect() +
+  coord_polar(theta="y") + 
+  xlim(c(2, 4)) +
+  theme_void() +
+  theme(legend.position = "right")
+print(boi_leg)
+
+
+Type_of_Tweetrs_Ryan <- paste(ryan_data$category, ryan_data$percentage, "%")
+ryan_leg<-ggplot(ryan_data, aes(ymax=ymax, ymin=ymin, xmax=4, xmin=3, fill=Type_of_Tweetrs_Ryan)) +
+  geom_rect() +
+  coord_polar(theta="y") + 
+  xlim(c(2, 4)) +
+  theme_void() +
+  theme(legend.position = "right")
+print(ryan_leg)
+
+
+Type_of_Tweet_Agi <- paste(agi_data$category, agi_data$percentage, "%")
+agi_leg<-ggplot(agi_data, aes(ymax=ymax, ymin=ymin, xmax=4, xmin=3, fill=Type_of_Tweet_Agi)) +
+  geom_rect() +
+  coord_polar(theta="y") + 
+  xlim(c(2, 4)) +
+  theme_void() +
+  theme(legend.position = "right")
+print(agi_leg)
+
+
+Type_of_Tweet_SkillSoft <- paste(skil_data$category, skil_data$percentage, "%")
+skil_leg<-ggplot(skil_data, aes(ymax=ymax, ymin=ymin, xmax=4, xmin=3, fill=Type_of_Tweet_SkillSoft)) +
+  geom_rect() +
+  coord_polar(theta="y") + 
+  xlim(c(2, 4)) +
+  theme_void() +
+  theme(legend.position = "right")
+print(skil_leg)
+
+
+
+## Frequency of the tweets for each
+
+frequency of Bank of Ireland Tweets
+
+colnames(boi)[colnames(boi)=="screen_name"] <- "Twitter_Account"
+ts_plot(dplyr::group_by(boi, Twitter_Account), "year") +
+  ggplot2::theme_minimal() +
+  ggplot2::theme(plot.title = ggplot2::element_text(face = "bold")) +
+  ggplot2::labs(
+    x = NULL, y = NULL,
+    title = "Frequency of Tweets from Bank Of Ireland",
+    subtitle = "Tweet counts aggregated by year",
+    caption = "\nSource: Data collected from Twitter's REST API via rtweet"
+  )
+
+frequency of Ryanair Tweets
+
+colnames(ryan)[colnames(ryan)=="screen_name"] <- "Twitter_Account"
+ts_plot(dplyr::group_by(ryan, Twitter_Account), "year") +
+  ggplot2::theme_minimal() +
+  ggplot2::theme(plot.title = ggplot2::element_text(face = "bold")) +
+  ggplot2::labs(
+    x = NULL, y = NULL,
+    title = "Frequency of Tweets Ryanair",
+    subtitle = "Tweet counts aggregated by year",
+    caption = "\nSource: Data collected from Twitter's REST API via rtweet"
+  )
+
+
+frequency of Agilent Tweets
+
+colnames(agi)[colnames(agi)=="screen_name"] <- "Twitter_Account"
+ts_plot(dplyr::group_by(agi, Twitter_Account), "year") +
+  ggplot2::theme_minimal() +
+  ggplot2::theme(plot.title = ggplot2::element_text(face = "bold")) +
+  ggplot2::labs(
+    x = NULL, y = NULL,
+    title = "Frequency of Tweets Agilent Technologies",
+    subtitle = "Tweet counts aggregated by year",
+    caption = "\nSource: Data collected from Twitter's REST API via rtweet"
+  )
+
+
+colnames(skil)[colnames(skil)=="screen_name"] <- "Twitter_Account"
+ts_plot(dplyr::group_by(skil, Twitter_Account), "year") +
+  ggplot2::theme_minimal() +
+  ggplot2::theme(plot.title = ggplot2::element_text(face = "bold")) +
+  ggplot2::labs(
+    x = NULL, y = NULL,
+    title = "Frequency of Tweets from SkillSoft",
+    subtitle = "Tweet counts aggregated by year",
+    caption = "\nSource: Data collected from Twitter's REST API via rtweet"
+  )
+
+
+## Show from where the tweets are published, (device) for Bank of Ireland
+
+boi_app <- boi %>% 
+  select(source) %>% 
+  group_by(source) %>%
+  summarize(count=n())
+boi_app <- subset(boi_app, count > 11)
+
+# Proceed with the donus chart
+boi_data1 <- data.frame(
+  category=boi_app$source,
+  count=boi_app$count
+)
+boi_data1$fraction = boi_data1$count / sum(boi_data1$count)
+boi_data1$percentage = boi_data1$count / sum(boi_data1$count) * 100
+boi_data1$ymax = cumsum(boi_data1$fraction)
+boi_data1$ymin = c(0, head(boi_data1$ymax, n=-1))
+boi_data1 <- round_df(boi_data1, 2)
+Source_tweets <- paste(boi_data1$category, boi_data1$percentage, "%")
+ggplot(boi_data1, aes(ymax=ymax, ymin=ymin, xmax=4, xmin=3, fill=Source_tweets)) +
+  geom_rect() +
+  coord_polar(theta="y") + # Try to remove that to understand how the chart is built initially
+  xlim(c(2, 4)) +
+  theme_void() +
+  theme(legend.position = "right")
+
+
+## Show from where the tweets are published, (device) for Ryanair
+
+ryan_app <- ryan %>% 
+  select(source) %>% 
+  group_by(source) %>%
+  summarize(count=n())
+ryan_app <- subset(ryan_app, count > 11)
+
+# Proceed with the donus chart
+ryan_data1 <- data.frame(
+  category=ryan_app$source,
+  count=ryan_app$count
+)
+ryan_data1$fraction = ryan_data1$count / sum(ryan_data1$count)
+ryan_data1$percentage = ryan_data1$count / sum(ryan_data1$count) * 100
+ryan_data1$ymax = cumsum(ryan_data1$fraction)
+ryan_data1$ymin = c(0, head(ryan_data1$ymax, n=-1))
+ryan_data1 <- round_df(ryan_data1, 2)
+Source_Ryanair <- paste(ryan_data1$category, ryan_data1$percentage, "%")
+ggplot(ryan_data1, aes(ymax=ymax, ymin=ymin, xmax=4, xmin=3, fill=Source_Ryanair)) +
+  geom_rect() +
+  coord_polar(theta="y") + # Try to remove that to understand how the chart is built initially
+  xlim(c(2, 4)) +
+  theme_void() +
+  theme(legend.position = "right")
+
+
+## Show from where the tweets are published, (device) for Agilent Technologies
+
+agi_app <- agi %>% 
+  select(source) %>% 
+  group_by(source) %>%
+  summarize(count=n())
+agi_app <- subset(agi_app, count > 11)
+
+# Proceed with the donus chart
+agi_data1 <- data.frame(
+  category=agi_app$source,
+  count=agi_app$count
+)
+agi_data1$fraction = agi_data1$count / sum(agi_data1$count)
+agi_data1$percentage = agi_data1$count / sum(agi_data1$count) * 100
+agi_data1$ymax = cumsum(agi_data1$fraction)
+agi_data1$ymin = c(0, head(agi_data1$ymax, n=-1))
+agi_data1 <- round_df(agi_data1, 2)
+Source_Agilent <- paste(agi_data1$category, agi_data1$percentage, "%")
+ggplot(agi_data1, aes(ymax=ymax, ymin=ymin, xmax=4, xmin=3, fill=Source_Agilent)) +
+  geom_rect() +
+  coord_polar(theta="y") + # Try to remove that to understand how the chart is built initially
+  xlim(c(2, 4)) +
+  theme_void() +
+  theme(legend.position = "right")
+
+skil_app <- skil %>% 
+  select(source) %>% 
+  group_by(source) %>%
+  summarize(count=n())
+skil_app <- subset(skil_app, count > 11)
+
+# Proceed with the donus chart
+skil_data1 <- data.frame(
+  category=skil_app$source,
+  count=skil_app$count
+)
+skil_data1$fraction = skil_data1$count / sum(skil_data1$count)
+skil_data1$percentage = skil_data1$count / sum(skil_data1$count) * 100
+skil_data1$ymax = cumsum(skil_data1$fraction)
+skil_data1$ymin = c(0, head(skil_data1$ymax, n=-1))
+skil_data1 <- round_df(skil_data1, 2)
+Source_tweets_SkillSoft <- paste(skil_data1$category, skil_data1$percentage, "%")
+ggplot(skil_data1, aes(ymax=ymax, ymin=ymin, xmax=4, xmin=3, fill=Source_tweets_SkillSoft)) +
+  geom_rect() +
+  coord_polar(theta="y") + # Try to remove that to understand how the chart is built initially
+  xlim(c(2, 4)) +
+  theme_void() +
+  theme(legend.position = "right")
+
+
+## SHOW THE MOST FREQUENT WORDS FOUND IN THE TWEETS
+
+# BOI 
+boi_tweets_organic$text <-  gsub("https\\S*", "", boi_tweets_organic$text)
+boi_tweets_organic$text <-  gsub("@\\S*", "", boi_tweets_organic$text) 
+boi_tweets_organic$text  <-  gsub("amp", "", boi_tweets_organic$text) 
+boi_tweets_organic$text  <-  gsub("[\r\n]", "", boi_tweets_organic$text)
+boi_tweets_organic$text  <-  gsub("[[:punct:]]", "", boi_tweets_organic$text)
+
+# take out prepositions and articles from the most common words
+boi_fw <- boi_tweets_organic %>%
+  select(text) %>%
+  unnest_tokens(word, text)
+boi_fw <- boi_fw %>%
+  anti_join(stop_words)
+
+boi_fw %>% # gives you a bar chart of the most frequent words found in the tweets
+  count(word, sort = TRUE) %>%
+  top_n(15) %>%
+  mutate(word = reorder(word, n)) %>%
+  ggplot(aes(x = word, y = n)) +
+  geom_col() +
+  xlab(NULL) +
+  coord_flip() +
+  labs(y = "Count",
+       x = "Unique words",
+       title = "Most frequent words found in the tweets of Bank of Ireland",
+       subtitle = "Stop words removed from the list")
+
+# Ryanair
+ryan_tweets_organic$text <-  gsub("https\\S*", "", ryan_tweets_organic$text)
+ryan_tweets_organic$text <-  gsub("@\\S*", "", ryan_tweets_organic$text) 
+ryan_tweets_organic$text  <-  gsub("amp", "", ryan_tweets_organic$text) 
+ryan_tweets_organic$text  <-  gsub("[\r\n]", "", ryan_tweets_organic$text)
+ryan_tweets_organic$text  <-  gsub("[[:punct:]]", "", ryan_tweets_organic$text)
+
+# take out prepositions and articles from the most common words
+ryan_fw <- ryan_tweets_organic %>%
+  select(text) %>%
+  unnest_tokens(word, text)
+ryan_fw <- ryan_fw %>%
+  anti_join(stop_words)
+
+ryan_fw %>% # gives you a bar chart of the most frequent words found in the tweets
+  count(word, sort = TRUE) %>%
+  top_n(15) %>%
+  mutate(word = reorder(word, n)) %>%
+  ggplot(aes(x = word, y = n)) +
+  geom_col() +
+  xlab(NULL) +
+  coord_flip() +
+  labs(y = "Count",
+       x = "Unique words",
+       title = "Most frequent words found in the tweets of Ryanair",
+       subtitle = "Stop words removed from the list")
+
+
+# Agilent most commons words
+agi_tweets_organic$text <-  gsub("https\\S*", "", agi_tweets_organic$text)
+agi_tweets_organic$text <-  gsub("@\\S*", "", agi_tweets_organic$text) 
+agi_tweets_organic$text  <-  gsub("amp", "", agi_tweets_organic$text) 
+agi_tweets_organic$text  <-  gsub("[\r\n]", "", agi_tweets_organic$text)
+agi_tweets_organic$text  <-  gsub("[[:punct:]]", "", agi_tweets_organic$text)
+# take out prepositions and articles from the most common words
+agi_fw <- agi_tweets_organic %>%
+  select(text) %>%
+  unnest_tokens(word, text)
+agi_fw <- agi_fw %>%
+  anti_join(stop_words)
+
+agi_fw %>% # gives you a bar chart of the most frequent words found in the tweets
+  count(word, sort = TRUE) %>%
+  top_n(15) %>%
+  mutate(word = reorder(word, n)) %>%
+  ggplot(aes(x = word, y = n)) +
+  geom_col() +
+  xlab(NULL) +
+  coord_flip() +
+  labs(y = "Count",
+       x = "Unique words",
+       title = "Most frequent words found in the tweets of Agient Technologies",
+       subtitle = "Stop words removed from the list")
+
+# SkillSoft 
+skil_tweets_organic$text <-  gsub("https\\S*", "", skil_tweets_organic$text)
+skil_tweets_organic$text <-  gsub("@\\S*", "", skil_tweets_organic$text) 
+skil_tweets_organic$text  <-  gsub("amp", "", skil_tweets_organic$text) 
+skil_tweets_organic$text  <-  gsub("[\r\n]", "", skil_tweets_organic$text)
+skil_tweets_organic$text  <-  gsub("[[:punct:]]", "", skil_tweets_organic$text)
+
+# take out prepositions and articles from the most common words
+skil_fw <- skil_tweets_organic %>%
+  select(text) %>%
+  unnest_tokens(word, text)
+skil_fw <- skil_fw %>%
+  anti_join(stop_words)
+
+skil_fw %>% # gives you a bar chart of the most frequent words found in the tweets
+  count(word, sort = TRUE) %>%
+  top_n(15) %>%
+  mutate(word = reorder(word, n)) %>%
+  ggplot(aes(x = word, y = n)) +
+  geom_col() +
+  xlab(NULL) +
+  coord_flip() +
+  labs(y = "Count",
+       x = "Unique words",
+       title = "Most frequent words found in the tweets of SkillSoft",
+       subtitle = "Stop words removed from the list")
+
+# SHOW THE MOST FREQUENTLY USED HASHTAGS BOI
+library(wordcloud)
+library(RColorBrewer)
+boi_tweets_organic$hashtags <- as.character(boi_tweets_organic$hashtags)
+boi_tweets_organic$hashtags <- gsub("c\\(", "", boi_tweets_organic$hashtags)
+set.seed(1234)
+wordcloud(boi_tweets_organic$hashtags, min.freq=2, scale=c(3.5, .5), random.order=FALSE,       rot.per=0.35,
+          colors=brewer.pal(8, "Dark2"))
+
+# SHOW THE MOST FREQUENTLY USED HASHTAGS Ryanair
+ryan_tweets_organic$hashtags <- as.character(ryan_tweets_organic$hashtags)
+ryan_tweets_organic$hashtags <- gsub("c\\(", "", ryan_tweets_organic$hashtags)
+set.seed(1234)
+wordcloud(ryan_tweets_organic$hashtags, min.freq=2, scale=c(3.5, .5), random.order=FALSE,       rot.per=0.35,
+          colors=brewer.pal(8, "Dark2"))
+
+# SHOW THE MOST FREQUENTLY USED HASHTAGS AGILENT TECHNOLOGIES
+agi_tweets_organic$hashtags <- as.character(agi_tweets_organic$hashtags)
+agi_tweets_organic$hashtags <- gsub("c\\(", "", agi_tweets_organic$hashtags)
+set.seed(1234)
+wordcloud(agi_tweets_organic$hashtags, min.freq=2, scale=c(2, .5), random.order=FALSE,       rot.per=0.35,
+          colors=brewer.pal(8, "Dark2"))
+
+# SHOW THE MOST FREQUENTLY USED HASHTAGS SKILLSOFT
+skil_tweets_organic$hashtags <- as.character(skil_tweets_organic$hashtags)
+skil_tweets_organic$hashtags <- gsub("c\\(", "", skil_tweets_organic$hashtags)
+set.seed(1234)
+wordcloud(skil_tweets_organic$hashtags, min.freq=2, scale=c(1.5, .5), random.order=FALSE,       rot.per=0.35,
+          colors=brewer.pal(8, "Dark2"))
+
+# SHOW THE ACCOUNTS FROM WHICH MOST RETWEETS ORIGINATE BOI
+set.seed(1234)
+wordcloud(boi_retweets$retweet_screen_name, min.freq=3, scale=c(2, .5), random.order=FALSE, rot.per=0.25, 
+          colors=brewer.pal(8, "Dark2"))
+
+# SHOW THE ACCOUNTS FROM WHICH MOST RETWEETS ORIGINATE Ryanair
+set.seed(1234)
+wordcloud(ryan_retweets$retweet_screen_name, min.freq=3, scale=c(2, .5), random.order=FALSE, rot.per=0.25, 
+          colors=brewer.pal(8, "Dark2"))
+
+# SHOW THE ACCOUNTS FROM WHICH MOST RETWEETS ORIGINATE Agilent Technologies
+set.seed(1234)
+wordcloud(agi_retweets$retweet_screen_name, min.freq=3, scale=c(2, .5), random.order=FALSE, rot.per=0.25, 
+          colors=brewer.pal(8, "Dark2"))
+
+# SHOW THE ACCOUNTS FROM WHICH MOST RETWEETS ORIGINATE SKILLSOFT
+set.seed(1234)
+wordcloud(skil_retweets$retweet_screen_name, min.freq=3, scale=c(2, .5), random.order=FALSE, rot.per=0.25, 
+          colors=brewer.pal(8, "Dark2"))
+
+
+# PERFORM A SENTIMENT ANALYSIS OF THE BANK OF IRELAND TWEETS
+library(syuzhet)
+
+# Converting tweets to ASCII to tackle strange characters
+boi_fw1 <- iconv(boi, from="UTF-8", to="ASCII", sub="")
+
+# removing retweets, in case needed 
+boi_fw1 <-gsub("(RT|via)((?:\\b\\w*@\\w+)+)","",boi_fw1)
+
+# removing mentions, in case needed
+boi_fw1 <-gsub("@\\w+","",boi_fw1)
+ew_sentiment<-get_nrc_sentiment((boi_fw1))
+sentimentscores<-data.frame(colSums(ew_sentiment[,]))
+names(sentimentscores) <- "Score"
+sentimentscores <- cbind("sentiment"=rownames(sentimentscores),sentimentscores)
+rownames(sentimentscores) <- NULL
+ggplot(data=sentimentscores,aes(x=sentiment,y=Score))+
+  geom_bar(aes(fill=sentiment),stat = "identity")+
+  theme(legend.position="none")+
+  xlab("Sentiments")+ylab("Scores")+
+  ggtitle("Total sentiment based on scores BOI")+
+  theme_minimal()
+
+# PERFORM A SENTIMENT ANALYSIS OF THE RYANAIR TWEETS
+
+# Converting tweets to ASCII to tackle strange characters
+ryan_fw <- iconv(ryan, from="UTF-8", to="ASCII", sub="")
+
+# removing retweets, in case needed 
+ryan_fw <-gsub("(RT|via)((?:\\b\\w*@\\w+)+)","",ryan_fw)
+
+# removing mentions, in case needed
+ryan_fw <-gsub("@\\w+","",ryan_fw)
+ryan_sentiment<-get_nrc_sentiment((ryan_fw))
+r_sentimentscores<-data.frame(colSums(ryan_sentiment[,]))
+names(r_sentimentscores) <- "Score"
+r_sentimentscores <- cbind("sentiment"=rownames(r_sentimentscores),r_sentimentscores)
+rownames(r_sentimentscores) <- NULL
+ggplot(data=r_sentimentscores,aes(x=sentiment,y=Score))+
+  geom_bar(aes(fill=sentiment),stat = "identity")+
+  theme(legend.position="none")+
+  xlab("Sentiments")+ylab("Scores")+
+  ggtitle("Total sentiment based on scores Ryanair")+
+  theme_minimal()
+
+
+# PERFORM A SENTIMENT ANALYSIS OF THE AGILENT TECHNOLOGIES TWEETS
+
+# Converting tweets to ASCII to tackle strange characters
+
+# ryan_fw <- iconv(ryan, from="UTF-8", to="ASCII", sub="")
+
+# removing retweets, in case needed 
+
+# ryan_fw <-gsub("(RT|via)((?:\\b\\w*@\\w+)+)","",ryan_fw)
+
+# removing mentions, in case needed
+# ryan_fw <-gsub("@\\w+","",ryan_fw)
+agi_sentiment<-get_nrc_sentiment((agi_fw$word))
+agi_sentimentscores<-data.frame(colSums(agi_sentiment[,]))
+names(agi_sentimentscores) <- "Score"
+agi_sentimentscores <- cbind("sentiment"=rownames(agi_sentimentscores),agi_sentimentscores)
+rownames(agi_sentimentscores) <- NULL
+ggplot(data=agi_sentimentscores,aes(x=sentiment,y=Score))+
+  geom_bar(aes(fill=sentiment),stat = "identity")+
+  theme(legend.position="none")+
+  xlab("Sentiments")+ylab("Scores")+
+  ggtitle("Total sentiment based on scores")+
+  theme_minimal()
+
+library(quantmod)
+library(tseries)
+library(timeSeries)
+library(forecast)
+library(xts)
+library(Quandl)
+
+# Create an object containing: the United Healthcare Group, Alphabet Inc and NVIDIA. Ticker symbols
+symbol1 = "BIRG.IR" # Bank Of Ireland Group plc (BIRG.IR) Irish - Irish Delayed price. Currency in EUR
+symbol2 = "GOOG"
+symbol3 = "NVDA" # NVidia Holdings - Currency in US$
+symbol4 = "RYA.IR" # Ryanair Holdings plc (RYA.IR) Irish - Irish Delayed price. Currency in EUR
+symbol5 = "A" # Agilent Technologies
+symbol6 = "SKIL"
+symbol7 = "KRZ.IR"
+symbol8 = "FDP.L"
+
+# Use getSymbols to import the data
+getSymbols(Symbols = symbol1, src = "yahoo")
+getSymbols(Symbols = symbol2, src = "yahoo")
+getSymbols(Symbols = symbol3, src = "yahoo")
+getSymbols(Symbols = symbol4, src = "yahoo")
+getSymbols(Symbols = symbol5, src = "yahoo")
+getSymbols(Symbols = symbol6, src = "yahoo")
+getSymbols(Symbols = symbol7, src = "yahoo")
+getSymbols(Symbols = symbol8, src = "yahoo")
+
+# Look at the first few rows of data of Bank Of Ireland Group plc (BIRG.IR) Irish.
+head(BIRG.IR)
+class(BIRG.IR)
+
+# Look at the first few rows of data of Alphabet Inc.
+head(GOOG)
+
+# Look at the first few rows of data of NVIDIA Corporation Dollar.
+head(NVDA)
+
+# Look at the first few rows of data of Ryanair Holdings plc (RYA.IR) Irish.
+head(RYA.IR)
+
+# look at the first few rows of data of Agilent Technologies, Inc. (A) NYSE - Nasdaq Real Time Price. Currency in USD
+head(A)
+
+# look at the first few rows of data of Skillsoft 
+head(SKIL)
+
+# Kerry Group 
+head(KRZ.IR)
+
+# First Derivate consulting 
+head(FDP.L)
+# Plotting the stock in terms of close price
+library(tidyverse)
+library(xts)
+library(dplyr)
+# install.packages("tsibble")
+library(tsibble)
+library(zoo)
+library(ggplot2)
+
+# create a ts with the close price Agilent Technology
+Agilent_Technologies_close_price <- A[, 4]
+Google_close_price <- GOOG[, 4]
+SkillSoft_close_price <- SKIL[,4]
+
+par(mfcol = c(3, 1))
+plot(A['2012',4], major.ticks='years', minor.ticks =FALSE, main= "Agilent", col=1)
+
+title(main = NULL,
+      xlab = "Time",
+      ylab = "US$")
+plot(A['2013',4], major.ticks='years', minor.ticks =FALSE, main= "Agilent", col=2)
+
+title(main = NULL,
+      xlab = "Time",
+      ylab = "US$")
+plot(A['2014',4], major.ticks='years', minor.ticks =FALSE, main= "Agilent", col=3)
+
+title(main = NULL,
+      xlab = "Time",
+      ylab = "US$")
+# setting ts with only close price of each
+Bank_Of_Ireland_close_price <- BIRG.IR[,4]
+Ryanair_close_price <- RYA.IR[, 4]
+Kerry_Group_close_price <- KRZ.IR[, 4]
+
+# Plotting the close price for each
+
+# Plotting Bank of Ireland  2015
+par(mfcol = c(1, 1))
+plot(BIRG.IR['2015',4], major.ticks='months', minor.ticks =FALSE, main= "BOI", col=1)
+
+title(main = NULL,
+      xlab = "Time",
+      ylab = "€")
+# Plotting Ryanair stock close price 2021.
+par(mfcol = c(1, 1))
+plot(RYA.IR['2021',4], major.ticks='months', minor.ticks =FALSE, main= "Ryanair", col=2)
+
+title(main = NULL,
+      xlab = "Time",
+      ylab = "€")
+#Plotting Kerry group 2021
+par(mfcol = c(1, 1))
+plot(KRZ.IR['2021',4], major.ticks='months', minor.ticks =FALSE, main= "Kerry Group", col=3)
+
+title(main = NULL,
+      xlab = "Time",
+      ylab = "€")
+#Plotting NVidia
+par(mfcol = c(1, 1))
+plot(NVDA[,4], major.ticks='months', minor.ticks =FALSE, main= "NVidia", col=4)
+
+title(main = NULL,
+      xlab = "Time",
+      ylab = "US$")
+
+# wrangling Stock and tweets for BOI
+
+# just take the 2015 BOI stock 
+BIRG.IR2015<-window(BIRG.IR, start = "2015-01-01", end = "2016-01-01")
+
+# only organic Tweets
+boiyear<-as.data.frame(boi_tweets_organic[,])
+
+# convert the datetime variable to date only yyyy-mm-dd
+boiyear$created_at<-as.character.Date(boiyear$created_at)
+
+# separate by year 2015 tweets only
+boiyear2015 <- boiyear[boiyear$created_at>"2015-01-01" & boiyear$created_at<"2016-01-01",]
+
+# set as date the date variable for the tweets
+boiyear2015$created_at<-as.Date(boiyear2015$created_at)
+
+# select only the variable needed
+boiyear2015<- select(boiyear2015, created_at, text)
+
+#get the sentiment score for each tweet
+test<-boiyear2015%>%mutate(textsc = get_sentiment(boiyear2015$text))
+test<- test %>% arrange(created_at)
+
+# Aggregate row and sum the score for each unique day
+datetwetsc<-aggregate(test[ ,3:3], FUN="sum", by=list(as.Date(test$created_at, "%Y-%m-%d")))
+
+# Adding the the stock close price for each date
+
+# convert time-series BIRG.IR2015 to data frame
+BIRG.IR2015df<-as.data.frame(BIRG.IR2015)
+
+# convert the index to date variable
+dfBIRG.IR2015 <- cbind(date = rownames(BIRG.IR2015df), BIRG.IR2015df)
+rownames(dfBIRG.IR2015) <- 1:nrow(dfBIRG.IR2015)
+
+# Rename variable group.1 to date
+library(dplyr)
+datetwetsc<-as_tibble(datetwetsc)
+datetwetsc<-rename(datetwetsc, date = Group.1)
+
+# Merge the two data frame
+df<-merge(datetwetsc, dfBIRG.IR2015, by = 'date', all=T)
+
+# As I have duplicate row for each day, aggregate the sentiment score and the close price in one row
+df[is.na(df)]<-0
+
+df<-aggregate(df[,2:8], FUN="sum", by=list(as.Date(df$date, "%Y-%m-%d")))
+# check correlation with tweets sentiment scores and stock price
+dftest<-df[2:8, 6:8]
+dftest<-as.double(unlist(dftest))
+hist(dftest)
+cor.test(df$x, df$BIRG.IR.Close, method = "spearman")
+
+# tweets and stock for BOI
+
+boiyear2015_s_v<-get_sentences(boiyear2015$text)
+#boiyear2015_s_v_s<-get_sentiment(boiyear2015_s_v)
+#percent_vals_boiyear2015 <- get_percentage_values(boiyear2015_s_v_s, bins = 520)
+plot(
+  test$textsc, 
+  type="l", 
+  main="Bank of Ireland Using Percenage-Based Means", 
+  xlab = "Tweets by months", 
+  ylab= "Emotional Valence", 
+  col="red"
+  )
+cor(BIRG.IR, y=NULL, method = c("pearson"))
+
+
+# PERFORM A SENTIMENT ANALYSIS OF THE BANK OF IRELAND TWEETS
+
+# Converting tweets to ASCII to tackle strange characters
+skil_fw1 <- iconv(skil, from="UTF-8", to="ASCII", sub="")
+
+# removing retweets, in case needed 
+skil_fw1 <-gsub("(RT|via)((?:\\b\\w*@\\w+)+)","",skil_fw1)
+
+# removing mentions, in case needed
+skil_fw1 <-gsub("@\\w+","",skil_fw1)
+skil_sentiment<-get_nrc_sentiment((boiyear2015_s_v))
+skil_sentimentscores<-data.frame(colSums(skil_sentiment[,]))
+names(skil_sentimentscores) <- "Score"
+skil_sentimentscores <- cbind("sentiment"=rownames(skil_sentimentscores),skil_sentimentscores)
+rownames(skil_sentimentscores) <- NULL
+ggplot(data=skil_sentimentscores,aes(x=sentiment,y=Score))+
+  geom_bar(aes(fill=sentiment),stat = "identity")+
+  theme(legend.position="none")+
+  xlab("Sentiments")+ylab("Scores")+
+  ggtitle("Total sentiment based on scores for 2015 BOI")+
+  theme_minimal()
+
